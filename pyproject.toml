@@ -1,0 +1,61 @@
+[project]
+name = "tollgate"
+version = "0.1.0"
+description = "Local-first LLM gateway: virtual keys, metering with cache-aware pricing, limits, and a Logfire-style dashboard."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Tollgate" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "httpx>=0.28",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "aiosqlite>=0.20",
+    "alembic>=1.14",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "keyring>=25",
+    "cryptography>=44",
+    "typer>=0.14",
+    "platformdirs>=4.3",
+]
+
+[project.optional-dependencies]
+desktop = ["pywebview>=5.3"]
+
+[project.scripts]
+tollgate = "tollgate.cli:app"
+
+[dependency-groups]
+dev = [
+    "asgi-lifespan>=2.1.0",
+    "pyinstaller>=6.11",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tollgate"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]  # FastAPI Depends() in defaults
+
+[tool.ruff.lint.per-file-ignores]
+"tests/proxy_mock.py" = ["E501"]  # SSE payloads are intentionally single-line

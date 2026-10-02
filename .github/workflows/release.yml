@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build dashboard + freeze app
+        run: |
+          uv sync --extra desktop --dev
+          uv run pyinstaller packaging/tollgate.spec --noconfirm --clean
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          codesign --force --deep --sign - dist/Tollgate.app
+          ditto -c -k --keepParent dist/Tollgate.app "tollgate-$VERSION-macos-arm64.zip"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF_NAME}".TrimStart('v')
+          if (-not $version) { $version = "0.1.0" }
+          Compress-Archive -Path dist\Tollgate\* -DestinationPath "tollgate-portable-$version-windows-x64.zip"
+          choco install innosetup -y --no-progress
+          $env:TOLLGATE_VERSION = $version
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "packaging\windows\tollgate.iss"
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Smoke test the frozen app
+        if: runner.os != 'Windows' # windows GUI exe can't be headless-smoked here
+        run: |
+          TOLLGATE_DATA_DIR=/tmp/tg-frozen TOLLGATE_SECRETS_BACKEND=file \
+            dist/Tollgate.app/Contents/MacOS/Tollgate serve --port 8811 &
+          sleep 12
+          curl -fsS http://127.0.0.1:8811/healthz
+          kill %1
+
+      - name: latest.json (in-app update check manifest)
+        shell: python
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          import json, os
+          version = os.environ["VERSION"] or "0.1.0"
+          platform = os.environ["PLATFORM"]
+          manifest = {
+              "version": version,
+              "platforms": {
+                  platform: {
+                      "signature": "",
+                      "notes": f"Tollgate {version} ({platform})",
+                  }
+              },
+              "pub_date": __import__("datetime").datetime.now(datetime.UTC).isoformat(),
+          }
+          with open("latest-partial.json", "w") as f:
+              json.dump(manifest, f)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tollgate-${{ matrix.platform }}
+          path: |
+            tollgate-*.zip
+            packaging/windows/out/*.exe
+            latest-partial.json
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Merge latest.json
+        run: |
+          python3 - <<'EOF'
+          import glob, json
+          merged = {"version": None, "platforms": {}}
+          for f in glob.glob("latest-partial.json"):
+              # each artifact dir has its own copy; merge platforms
+              data = json.load(open(f))
+              merged["version"] = data["version"]
+              merged["platforms"].update(data["platforms"])
+              merged["pub_date"] = data["pub_date"]
+          json.dump(merged, open("latest.json", "w"), indent=2)
+          EOF
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tollgate-*.zip
+            packaging/windows/out/*.exe
+            latest.json
