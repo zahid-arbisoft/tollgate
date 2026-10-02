@@ -16,7 +16,7 @@ DefaultDirName={localappdata}\Programs\Tollgate
 DefaultGroupName=Tollgate
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
-OutputDir=packaging\windows\out
+OutputDir=out
 OutputBaseFilename=tollgate-setup-{#Version}
 Compression=lzma2
 SolidCompression=yes
@@ -28,7 +28,7 @@ UninstallDisplayName=Tollgate
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; Flags: unchecked
 
 [Files]
-Source: "dist\Tollgate\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "..\..\dist\Tollgate\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{group}\Tollgate"; Filename: "{app}\Tollgate.exe"

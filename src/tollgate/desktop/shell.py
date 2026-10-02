@@ -21,6 +21,30 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def _preferred_port(configured: int) -> int:
+    """Keep the configured port (default 8787) when free.
+
+    Sync peers dial a FIXED address (e.g. the Mac at 10.0.2.2:8787 through
+    UTM's slirp network), so the desktop window must not drift to random
+    ports or it becomes unreachable for merging. If the port is busy —
+    typically another Tollgate instance is already serving — fall back to a
+    random port and warn: this window won't be the one peers sync with.
+    """
+    with socket.socket() as s:
+        try:
+            s.bind(("127.0.0.1", configured))
+            return configured
+        except OSError:
+            log.warning(
+                "port %s is busy — using a random port. Sync peers dialing "
+                "port %s will NOT reach this window; stop the other Tollgate "
+                "instance to make this one the sync target.",
+                configured,
+                configured,
+            )
+            return _free_port()
+
+
 def run_desktop() -> None:
     import webview
 
@@ -28,7 +52,7 @@ def run_desktop() -> None:
     from ..main import create_app
 
     settings = get_settings()
-    port = _free_port()
+    port = _preferred_port(settings.port)
     settings_overrides = settings.model_copy(update={"host": "127.0.0.1", "port": port})
     app = create_app(settings_overrides)
 

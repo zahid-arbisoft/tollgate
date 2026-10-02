@@ -78,16 +78,28 @@ jobs:
               },
               "pub_date": __import__("datetime").datetime.now(datetime.UTC).isoformat(),
           }
-          with open("latest-partial.json", "w") as f:
+          with open(f"latest-partial-{platform}.json", "w") as f:
               json.dump(manifest, f)
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tollgate-${{ matrix.platform }}
+          path: |
+            tollgate-*.zip
+            latest-partial-*.json
+          if-no-files-found: error
+
+      - name: Upload artifacts (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
         with:
           name: tollgate-${{ matrix.platform }}
           path: |
             tollgate-*.zip
             packaging/windows/out/*.exe
-            latest-partial.json
+            latest-partial-*.json
           if-no-files-found: error
 
   release:
@@ -104,7 +116,7 @@ jobs:
           python3 - <<'EOF'
           import glob, json
           merged = {"version": None, "platforms": {}}
-          for f in glob.glob("latest-partial.json"):
+          for f in sorted(glob.glob("latest-partial-*.json")):
               # each artifact dir has its own copy; merge platforms
               data = json.load(open(f))
               merged["version"] = data["version"]

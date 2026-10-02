@@ -37,6 +37,12 @@ Mac's loopback, so it **bypasses the macOS application firewall entirely** —
 the one networking path that works on a locked-down, no-admin Mac without any
 tunnel.
 
+Whichever mode the *Mac* runs in, it must listen on the **configured port**
+(8787) — peers dial that fixed address. `tollgate serve` does this naturally,
+and the desktop window also binds it, falling back to a random port (with a
+warning) only when another Tollgate instance already holds 8787. The machine
+that is never dialed (Windows, in this topology) can run on any port.
+
 ## Locked-down Mac (no admin): outbound tunnels
 
 The macOS app firewall blocks inbound connections to the dev Python and can't
