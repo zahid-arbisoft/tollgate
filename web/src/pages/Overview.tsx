@@ -76,14 +76,15 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         <Stat label="Requests" value={fmtNum(s.requests)} />
         <Stat label="Tokens in" value={fmtNum(s.tokens_in)} />
         <Stat label="Tokens out" value={fmtNum(s.tokens_out)} />
+        <Stat label="Est. cost" value={fmtUsd(s.cost_usd)} sub="billed incl. cache rates" />
         <Stat
-          label="Est. cost"
-          value={fmtUsd(s.cost_usd)}
-          sub={`${fmtNum(s.tokens_cached)} cached`}
+          label="Without cache"
+          value={fmtUsd(s.cost_uncached_usd)}
+          sub="same usage, zero cache hits"
         />
         <Stat label="Error rate" value={(s.error_rate * 100).toFixed(1) + "%"} />
         <Stat

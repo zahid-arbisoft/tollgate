@@ -76,6 +76,7 @@ async def build_stats(
                 func.sum(RequestLog.tokens_out),
                 func.sum(RequestLog.cache_read + RequestLog.cache_write),
                 func.sum(RequestLog.cost_usd),
+                func.sum(RequestLog.cost_uncached_usd),
                 func.sum(case((RequestLog.status_code >= 400, 1), else_=0)),
                 func.avg(RequestLog.latency_total_ms),
                 func.avg(RequestLog.upstream_ms),
@@ -94,7 +95,9 @@ async def build_stats(
             "tokens_out": r[3] or 0,
             "tokens_cached": r[4] or 0,
             "cost_usd": round(r[5] or 0.0, 8),
-            "errors": r[6] or 0,
+            "cost_uncached_usd": round(r[6] or 0.0, 8),
+            "cache_savings_usd": round((r[6] or 0.0) - (r[5] or 0.0), 8),
+            "errors": r[7] or 0,
             "avg_latency_ms": round(r[7], 2) if r[7] else None,
             "avg_upstream_ms": round(r[8], 2) if r[8] else None,
         }
@@ -106,6 +109,7 @@ async def build_stats(
     total_out = sum(s["tokens_out"] for s in series)
     total_cached = sum(s["tokens_cached"] for s in series)
     total_cost = sum(s["cost_usd"] for s in series)
+    total_uncached = sum(s["cost_uncached_usd"] for s in series)
     total_err = sum(s["errors"] for s in series)
 
     # Overhead percentiles from raw rows (bounded: retention window is local-scale).
@@ -136,6 +140,8 @@ async def build_stats(
             "tokens_out": total_out,
             "tokens_cached": total_cached,
             "cost_usd": round(total_cost, 8),
+            "cost_uncached_usd": round(total_uncached, 8),
+            "cache_savings_usd": round(total_uncached - total_cost, 8),
             "error_rate": round(total_err / total_req, 4) if total_req else 0.0,
             "overhead_p50_ms": round(percentile(overheads, 0.50), 3) if overheads else None,
             "overhead_p95_ms": round(percentile(overheads, 0.95), 3) if overheads else None,

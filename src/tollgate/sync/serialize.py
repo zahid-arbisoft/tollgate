@@ -114,6 +114,7 @@ def log_payload(r: RequestLog) -> dict:
         "cache_read": r.cache_read,
         "cache_write": r.cache_write,
         "cost_usd": r.cost_usd,
+        "cost_uncached_usd": r.cost_uncached_usd,
         "price_band_id": r.price_band_id,
         "is_stream": r.is_stream,
         "estimated": r.estimated,

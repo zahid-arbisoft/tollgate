@@ -211,6 +211,9 @@ class RequestLog(Base):
     cache_read: Mapped[int] = mapped_column(BigInteger, default=0)
     cache_write: Mapped[int] = mapped_column(BigInteger, default=0)
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    # Counterfactual: same usage with zero caching (all tokens at the input
+    # rate) — frozen at log time like cost_usd; difference = cache savings.
+    cost_uncached_usd: Mapped[float] = mapped_column(Float, default=0.0)
     price_band_id: Mapped[int | None] = mapped_column(ForeignKey("model_prices.id"), nullable=True)
     is_stream: Mapped[bool] = mapped_column(default=False)
     estimated: Mapped[bool] = mapped_column(default=False)  # tokens estimated (chars÷4)

@@ -36,10 +36,11 @@ async def finalize_request(
     tokens_out = usage.tokens_out if usage else 0
 
     cost_usd = 0.0
+    cost_uncached = 0.0
     band_id = None
     if usage and (tokens_in or tokens_out or usage.cache_read or usage.cache_write):
         async with app.state.session_factory() as session:
-            cost_usd, band_id = await compute_cost(session, model, usage)
+            cost_usd, cost_uncached, band_id = await compute_cost(session, model, usage)
 
     row = RequestLog(
         instance_id=app.state.instance_id,
@@ -56,6 +57,7 @@ async def finalize_request(
         cache_read=usage.cache_read if usage else 0,
         cache_write=usage.cache_write if usage else 0,
         cost_usd=cost_usd,
+        cost_uncached_usd=cost_uncached,
         price_band_id=band_id,
         is_stream=is_stream,
         estimated=usage.estimated if usage else False,
