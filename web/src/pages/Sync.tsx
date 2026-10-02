@@ -27,6 +27,7 @@ function AddPeerModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [token, setToken] = useState("");
+  const [enabled, setEnabled] = useState(true);
   const [generated, setGenerated] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -39,6 +40,7 @@ function AddPeerModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         name,
         endpoint_url: url,
         shared_token: token || undefined,
+        enabled,
       });
       setGenerated(result.shared_token);
       onSaved();
@@ -83,6 +85,16 @@ function AddPeerModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         <Field label="Shared pairing token (paste the one the peer generated — empty = generate new)">
           <Input type="password" value={token} onChange={(e) => setToken(e.target.value)} />
         </Field>
+        <label className="flex items-center gap-2 text-[12px]">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+          Active (uncheck if this machine never dials the peer — e.g. behind a
+          one-way network like a VM slirp link; the entry then only authenticates
+          the peer's incoming sync)
+        </label>
         {error && <div className="text-[12px] text-red-400">{error}</div>}
         <div className="flex justify-end gap-2 pt-1">
           <Button onClick={onClose}>Cancel</Button>
