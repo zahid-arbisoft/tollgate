@@ -114,3 +114,18 @@ async def test_webhook_setting_roundtrip(client, admin_headers):
     resp2 = await client.get("/admin/settings", headers=admin_headers)
     body = resp2.json()
     assert body["webhook_url"] == "https://hooks.example/abc"
+
+
+# ---------------------------------------------------------------- windows db_path
+
+
+def test_db_path_strips_drive_letter_slash():
+    """sqlite+aiosqlite:///C:/x parses to '/C:/x' — Windows file APIs reject
+    that; db_path must normalize to 'C:/x' (fixes backup/restore on Windows)."""
+    from tollgate.config import Settings
+
+    s = Settings(database_url="sqlite+aiosqlite:///C:/Users/me/data/test.db")
+    assert s.db_path.as_posix() == "C:/Users/me/data/test.db"
+
+    s2 = Settings(database_url="sqlite+aiosqlite:////tmp/abs/test.db")
+    assert s2.db_path.as_posix() == "/tmp/abs/test.db"

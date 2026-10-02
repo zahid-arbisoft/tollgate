@@ -70,7 +70,14 @@ class Settings(BaseSettings):
         if self.database_url:
             from urllib.parse import urlparse
 
-            return Path(urlparse(self.database_url).path)
+            raw = urlparse(self.database_url.replace("\\", "/")).path
+            # sqlite+aiosqlite:///C:/x → '/C:/x'; Windows needs the drive
+            # letter first or every file operation on it fails (WinError 123).
+            if len(raw) > 2 and raw[0] == "/" and raw[2] == ":":
+                raw = raw[1:]
+            while raw.startswith("//"):  # 4-slash URL form
+                raw = raw[1:]
+            return Path(raw)
         return self.data_dir / "tollgate.db"
 
     @property
