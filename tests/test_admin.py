@@ -382,3 +382,19 @@ async def test_event_bus_pubsub(app):
     bus.unsubscribe(q)
     bus.publish({"type": "request"})
     assert q.empty()  # unsubscribed: no delivery
+
+
+async def test_clear_usage_stats(client, admin_headers, seeded_logs):
+    resp = await client.get("/admin/logs", headers=admin_headers)
+    assert resp.json()["total"] == 3
+
+    resp = await client.delete("/admin/logs", headers=admin_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["request_logs_deleted"] == 3
+    assert body["counters_deleted"] > 0
+
+    assert (await client.get("/admin/logs", headers=admin_headers)).json()["total"] == 0
+    # config survives
+    keys = await client.get("/admin/keys", headers=admin_headers)
+    assert len(keys.json()) >= 1

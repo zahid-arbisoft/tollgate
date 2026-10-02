@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5 (2026-10-02)
+
+- Keys wizard: allowed providers are now checkboxes (no more typo-prone
+  comma-separated text); none checked = allow all.
+- New full-page Live view: scrollable live tail (400 events, clear button)
+  in the nav; the Overview keeps its compact tail.
+- Clear usage stats: Settings danger-zone button + DELETE /admin/logs
+  (logs + counters wiped, config untouched; clear on both machines for a
+  fully clean slate — undelivered peer rows otherwise re-arrive).
+
 ## 0.1.4 (2026-10-02)
 
 - Sync correctness: per-stream cursors for logs vs config events — a shared

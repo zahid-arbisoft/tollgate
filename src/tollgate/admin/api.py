@@ -840,6 +840,26 @@ async def query_logs(
     return {"total": total, "items": [log_out(r, keys) for r in rows]}
 
 
+@router.delete("/logs")
+async def clear_usage_stats(
+    request: Request, _: None = Depends(require_admin), session: AsyncSession = Depends(get_session)
+):
+    """Clear ALL usage stats on this machine: request logs + window counters.
+
+    Keys, providers, limits and other config are untouched. Rows already
+    delivered to a peer will not come back; rows a peer has NOT yet sent
+    will re-arrive on its next sync — clear on both machines for a fully
+    clean slate."""
+    from sqlalchemy import delete
+
+    from ..store.models import Counter
+
+    logs_gone = (await session.execute(delete(RequestLog))).rowcount or 0
+    counters_gone = (await session.execute(delete(Counter))).rowcount or 0
+    await session.commit()
+    return {"request_logs_deleted": logs_gone, "counters_deleted": counters_gone}
+
+
 @router.get("/logs/export")
 async def export_logs(
     format: str = "csv",

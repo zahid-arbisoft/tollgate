@@ -8,6 +8,7 @@ import {
   LimitRule,
   VirtualKey,
 } from "../api";
+import { useScope } from "../scope";
 import {
   Badge,
   Button,
@@ -46,11 +47,12 @@ function CreateKeyWizard({
   onClose: () => void;
   onCreated: (k: VirtualKey) => void;
 }) {
+  const scope = useScope();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [project, setProject] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
-  const [allowedProviders, setAllowedProviders] = useState("");
+  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [allowedModels, setAllowedModels] = useState("");
   const [limits, setLimits] = useState<{ metric: string; window: string; value: string; auto_block: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
@@ -62,9 +64,7 @@ function CreateKeyWizard({
         name,
         project: project || null,
         expires_in_days: expiresInDays ? parseInt(expiresInDays, 10) : null,
-        allowed_providers: allowedProviders
-          ? allowedProviders.split(",").map((s) => s.trim()).filter(Boolean)
-          : null,
+        allowed_providers: allowedProviders.length ? allowedProviders : null,
         allowed_models_aliases: allowedModels
           ? allowedModels.split(",").map((s) => s.trim()).filter(Boolean)
           : null,
@@ -102,8 +102,31 @@ function CreateKeyWizard({
               type="number"
             />
           </Field>
-          <Field label="Allowed providers (comma-separated)">
-            <Input value={allowedProviders} onChange={(e) => setAllowedProviders(e.target.value)} placeholder="empty = all" />
+          <Field label="Allowed providers (none checked = all)">
+            <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border border-[var(--color-line)] bg-zinc-900/40 p-2">
+              {scope.providers.length === 0 && (
+                <div className="text-[11px] text-[var(--color-muted)]">
+                  No providers configured — key will allow all.
+                </div>
+              )}
+              {scope.providers.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 text-[12px]">
+                  <input
+                    type="checkbox"
+                    checked={allowedProviders.includes(p.name)}
+                    onChange={(e) =>
+                      setAllowedProviders(
+                        e.target.checked
+                          ? [...allowedProviders, p.name]
+                          : allowedProviders.filter((n) => n !== p.name),
+                      )
+                    }
+                  />
+                  {p.name}
+                  <span className="text-[10px] text-[var(--color-muted)]">({p.type})</span>
+                </label>
+              ))}
+            </div>
           </Field>
           <Field label="Allowed models / aliases">
             <Input value={allowedModels} onChange={(e) => setAllowedModels(e.target.value)} placeholder="empty = all" />
