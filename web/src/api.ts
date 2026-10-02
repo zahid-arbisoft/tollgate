@@ -1,13 +1,38 @@
 // API client: admin token lives in localStorage (set on first load / Settings).
 
 const TOKEN_KEY = "tollgate-admin-token";
+const EXPIRY_KEY = "tollgate-admin-token-exp";
 
+/** Remembered token (localStorage, 30-day expiry) or session-only
+ * (sessionStorage, dies with the window). Entries written before expiry
+ * tracking exist have no expiry key and stay valid. */
 export function getToken(): string {
-  return localStorage.getItem(TOKEN_KEY) ?? "";
+  const remembered = localStorage.getItem(TOKEN_KEY) ?? "";
+  if (remembered) {
+    const exp = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);
+    if (exp && Date.now() > exp) {
+      clearToken();
+      return "";
+    }
+    return remembered;
+  }
+  return sessionStorage.getItem(TOKEN_KEY) ?? "";
 }
 
-export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+export function setToken(token: string, rememberDays = 30) {
+  clearToken();
+  if (rememberDays > 0) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(EXPIRY_KEY, String(Date.now() + rememberDays * 86_400_000));
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  }
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(EXPIRY_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export class ApiError extends Error {
