@@ -10,99 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Radio } from "lucide-react";
 import { api, fmtMs, fmtNum, fmtTime, fmtUsd, Stats } from "../api";
 import { ScopeBar, useScope } from "../scope";
-import { Card, Stat, Table, Empty, Badge } from "../ui";
-
-interface TailEvent {
-  type: string;
-  ts?: string;
-  model?: string;
-  provider?: string;
-  status?: number;
-  cost_usd?: number;
-  tokens_in?: number;
-  tokens_out?: number;
-  latency_ms?: number;
-  metric?: string;
-  window?: string;
-}
-
-function LiveTail() {
-  const [events, setEvents] = useState<TailEvent[]>([]);
-  const [connected, setConnected] = useState(false);
-  const esRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    const es = new EventSource("/admin/events/stream?token=" + encodeURIComponent(localStorage.getItem("tollgate-admin-token") ?? ""));
-    esRef.current = es;
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
-    es.onmessage = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.data) as TailEvent;
-        setEvents((prev) => [parsed, ...prev].slice(0, 50));
-      } catch {
-        /* ignore */
-      }
-    };
-    return () => es.close();
-  }, []);
-
-  return (
-    <Card
-      title={
-        <span className="inline-flex items-center gap-2">
-          <Radio size={13} className={connected ? "text-emerald-400" : "text-zinc-500"} />
-          Live tail
-        </span>
-      }
-    >
-      {events.length === 0 ? (
-        <Empty>Waiting for requests…</Empty>
-      ) : (
-        <div className="max-h-72 space-y-1 overflow-y-auto">
-          {events.map((ev, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 rounded border border-[var(--color-line)] bg-zinc-900/40 px-2.5 py-1.5 text-[11.5px]"
-            >
-              {ev.type === "request" ? (
-                <>
-                  <Badge tone={ev.status && ev.status < 400 ? "ok" : "error"}>
-                    {ev.status}
-                  </Badge>
-                  <span className="font-medium">{ev.model ?? "?"}</span>
-                  <span className="text-[var(--color-muted)]">{ev.provider}</span>
-                  <span className="ml-auto tabular-nums text-[var(--color-muted)]">
-                    {fmtNum(ev.tokens_in)}→{fmtNum(ev.tokens_out)} tok
-                  </span>
-                  <span className="tabular-nums">{fmtUsd(ev.cost_usd)}</span>
-                  <span className="tabular-nums text-[var(--color-muted)]">
-                    {fmtMs(ev.latency_ms)}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Badge tone={ev.type === "limit_warn" ? "warn" : "error"}>
-                    {ev.type === "limit_warn" ? "warn" : "breach"}
-                  </Badge>
-                  <span>
-                    {ev.metric} / {ev.window}
-                  </span>
-                  <span className="ml-auto text-[var(--color-muted)]">
-                    {ev.ts ? fmtTime(ev.ts) : ""}
-                  </span>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
+import { Card, Stat, Table, Empty } from "../ui";
+import LiveTail from "../LiveTail";
 
 export default function Overview() {
   const scope = useScope();
@@ -201,7 +112,7 @@ export default function Overview() {
             </LineChart>
           </ResponsiveContainer>
         </Card>
-        <LiveTail />
+        <LiveTail maxEvents={50} listClassName="max-h-72" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

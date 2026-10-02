@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity,
   KeyRound,
+  Radio,
   ScrollText,
   Plug,
   Tags,
@@ -14,6 +15,7 @@ import { api, getToken, setToken } from "./api";
 import { ScopeProvider } from "./scope";
 import { Button, Input } from "./ui";
 import Overview from "./pages/Overview";
+import Live from "./pages/Live";
 import Keys from "./pages/Keys";
 import Logs from "./pages/Logs";
 import Providers from "./pages/Providers";
@@ -25,6 +27,7 @@ import Sync from "./pages/Sync";
 const NAV = [
   { to: "/", label: "Overview", icon: Activity },
   { to: "/keys", label: "Keys", icon: KeyRound },
+  { to: "/live", label: "Live", icon: Radio },
   { to: "/logs", label: "Logs", icon: ScrollText },
   { to: "/providers", label: "Providers", icon: Plug },
   { to: "/pricing", label: "Pricing", icon: DollarSign },
@@ -169,6 +172,7 @@ export default function App() {
           >
             <Routes>
               <Route path="/" element={<Overview />} />
+              <Route path="/live" element={<Live />} />
               <Route path="/keys" element={<Keys />} />
               <Route path="/logs" element={<Logs />} />
               <Route path="/providers" element={<Providers />} />
