@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Runtime data (never commit DBs or secrets)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.key
+
+# Node / web
+node_modules/
+web/dist/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Packaging output
+packaging/dist/
+
+# IDE / editor
+.idea/
+.vscode/
+
+# Playwright / TS build artifacts
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
