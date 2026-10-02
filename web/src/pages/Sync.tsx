@@ -301,8 +301,7 @@ export default function Sync() {
         <AddPeerModal
           onClose={() => setAdding(false)}
           onSaved={() => {
-            setAdding(false);
-            load();
+            load(); // keep the modal open: it may still be showing the token
           }}
         />
       )}
