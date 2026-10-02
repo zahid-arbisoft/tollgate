@@ -148,6 +148,28 @@ export default function Settings() {
         </div>
       </Card>
 
+      <Card title="Danger zone">
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-[12px] text-[var(--color-muted)]">
+            Clear ALL usage stats on this machine (logs + counters). Keys,
+            providers and other config are kept. For a fully clean slate do
+            this on both machines.
+          </div>
+          <Button
+            variant="danger"
+            onClick={async () => {
+              if (!confirm("Delete all request logs and counters on this machine?")) return;
+              const r = await api.del<{ request_logs_deleted: number; counters_deleted: number }>(
+                "/admin/logs",
+              );
+              alert(`Cleared ${r.request_logs_deleted} log rows and ${r.counters_deleted} counters.`);
+            }}
+          >
+            Clear usage stats
+          </Button>
+        </div>
+      </Card>
+
       <Card
         title="Backups"
         right={
