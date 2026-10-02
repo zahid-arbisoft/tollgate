@@ -185,7 +185,7 @@ def _cut_event(adapter) -> bytes:
     import json as _json
 
     payload = adapter.error_payload(
-        429, "Limit exceeded — stream terminated by Tollgate.", "limit_exceeded"
+        429, "Limit exceeded - stream terminated by Tollgate.", "limit_exceeded"
     )
     return b"event: error\ndata: " + _json.dumps(payload).encode() + b"\n\ndata: [DONE]\n\n"
 

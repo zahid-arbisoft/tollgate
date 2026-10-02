@@ -32,5 +32,5 @@ def redact(text: str) -> str:
 def make_preview(body: bytes, limit: int = MAX_PREVIEW_BYTES) -> str:
     text = body[:limit].decode("utf-8", errors="replace")
     if len(body) > limit:
-        text += f"\n…[truncated {len(body) - limit} bytes]"
+        text += f"\n...[truncated {len(body) - limit} bytes]"
     return redact(text)

@@ -70,7 +70,7 @@ async def authenticate(request: Request) -> VirtualKey:
         raise KeyAuthError(
             401,
             "missing_or_malformed_key",
-            "Provide a Tollgate virtual key (x-api-key or Bearer, tg-…).",
+            "Provide a Tollgate virtual key (x-api-key or Bearer, tg-...).",
         )
     client_ip = request.client.host if request.client else "unknown"
     if await throttle.check_and_record(client_ip):

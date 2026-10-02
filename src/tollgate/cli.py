@@ -6,7 +6,7 @@ import typer
 
 from . import __version__
 
-app = typer.Typer(help="Tollgate — local-first LLM gateway.", no_args_is_help=True)
+app = typer.Typer(help="Tollgate - local-first LLM gateway.", no_args_is_help=True)
 key_app = typer.Typer(help="Manage virtual keys.", no_args_is_help=True)
 db_app = typer.Typer(help="Database utilities.", no_args_is_help=True)
 app.add_typer(key_app, name="key")
@@ -34,10 +34,10 @@ def serve(
     bind_host = host or settings.host
 
     if bind_host not in ("127.0.0.1", "localhost", "::1"):
-        typer.echo("⚠  LAN binding: the dashboard and admin API are now reachable from")
+        typer.echo("WARNING: LAN binding - the dashboard and admin API are now reachable from")
         typer.echo("   your network. Anyone with the admin token can manage Tollgate, so")
         typer.echo("   only do this on networks you trust (or use Tailscale). Proxy")
-        typer.echo("   endpoints still require a valid tg-… virtual key.")
+        typer.echo("   endpoints still require a valid tg-... virtual key.")
         the_port = port if port is not None else settings.port
         typer.echo(f"   Reachable at: http://{_lan_ip()}:{the_port}")
         typer.echo()
@@ -113,7 +113,7 @@ def key_create(
         await the_app.state.engine.dispose()
         typer.echo(f"Virtual key created (id {key.id}):")
         typer.echo(f"  {plaintext}")
-        typer.echo("Store it now — it will not be shown again.")
+        typer.echo("Store it now - it will not be shown again.")
 
     asyncio.run(_run())
 

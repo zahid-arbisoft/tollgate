@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 (2026-10-02)
+
+- Fix: frozen Windows exe crashed on launch — a log line with a non-ASCII
+  arrow hit the cp1252 console encoding (UnicodeEncodeError inside logging's
+  error handler, which has no real stderr in a windowed app). Runtime strings
+  are ASCII now, and the entrypoint routes stdout/stderr through UTF-8 with
+  replacement (and devnull when there is no console at all).
+
 ## 0.1.2 (2026-10-02)
 
 - Fix: release workflow's latest.json step crashed on a missing datetime
