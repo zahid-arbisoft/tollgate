@@ -123,11 +123,16 @@ export default function Sync() {
     }
   };
   useEffect(() => {
-    load();
-    api
-      .get<{ instance_id: string }>("/admin/settings")
-      .then((s) => setMe(s.instance_id))
-      .catch(() => {});
+    const tick = () => {
+      load();
+      api
+        .get<{ instance_id: string }>("/admin/settings")
+        .then((s) => setMe(s.instance_id))
+        .catch(() => {});
+    };
+    tick();
+    const timer = setInterval(tick, 15_000); // cursors/last_seen/audit live-update
+    return () => clearInterval(timer);
   }, []);
 
   const syncNow = async () => {

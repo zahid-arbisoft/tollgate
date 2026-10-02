@@ -19,6 +19,8 @@ export default function Pricing() {
   };
   useEffect(() => {
     load();
+    const timer = setInterval(load, 15_000);
+    return () => clearInterval(timer);
   }, []);
 
   const refreshPreview = async () => {

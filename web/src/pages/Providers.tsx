@@ -131,6 +131,8 @@ export default function Providers() {
   };
   useEffect(() => {
     load();
+    const timer = setInterval(load, 15_000);
+    return () => clearInterval(timer);
   }, []);
 
   const test = async (id: number) => {
