@@ -197,15 +197,21 @@ export default function Keys() {
   const [drill, setDrill] = useState<VirtualKey | null>(null);
 
   const load = async () => {
-    const [k, l] = await Promise.all([
-      api.get<VirtualKey[]>("/admin/keys"),
-      api.get<LimitRule[]>("/admin/limits"),
-    ]);
-    setKeys(k);
-    setLimits(l);
+    try {
+      const [k, l] = await Promise.all([
+        api.get<VirtualKey[]>("/admin/keys"),
+        api.get<LimitRule[]>("/admin/limits"),
+      ]);
+      setKeys(k);
+      setLimits(l);
+    } catch {
+      /* offline banner handles it */
+    }
   };
   useEffect(() => {
     load();
+    const timer = setInterval(load, 15_000); // see rows synced from peers
+    return () => clearInterval(timer);
   }, []);
 
   const act = async (id: string, action: string, body?: unknown) => {

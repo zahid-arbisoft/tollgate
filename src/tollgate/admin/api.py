@@ -223,13 +223,15 @@ def log_out(row: RequestLog, keys_by_id: dict[str, VirtualKey] | None = None) ->
     return d
 
 
-def provider_out(p: Provider) -> dict:
+def provider_out(p: Provider, key_present: bool | None = None) -> dict:
+    # key_present: whether the LOCAL secret store actually holds the key.
+    # None (no store access) falls back to the handle for backwards compat.
     return {
         "id": p.id,
         "type": p.type,
         "name": p.name,
         "base_url": p.base_url,
-        "has_key": bool(p.secret_handle),
+        "has_key": key_present if key_present is not None else bool(p.secret_handle),
         "enabled": p.enabled,
         "timeout_s": p.timeout_s,
         "retries": p.retries,

@@ -43,6 +43,19 @@ async def handshake(request: Request, authorization: str | None = Header(None)):
     }
 
 
+def parse_cursor(cursor: str) -> tuple[str, str]:
+    """Composite '<log_cursor>|<cfg_cursor>'; plain values apply to both
+    (backwards compatible with pre-composite peers)."""
+    if "|" in cursor:
+        log_c, cfg_c = cursor.split("|", 1)
+        return log_c, cfg_c
+    return cursor, cursor
+
+
+def format_cursor(log_cursor: str, cfg_cursor: str) -> str:
+    return f"{log_cursor}|{cfg_cursor}"
+
+
 @router.get("/sync/events")
 async def events(
     request: Request,
@@ -50,14 +63,19 @@ async def events(
     limit: int = Query(500, le=5000),
     authorization: str | None = Header(None),
 ):
-    """Usage + config events with id > cursor (ULID order == time order)."""
+    """Usage + config events newer than the per-stream cursors.
+
+    Logs and config events live in separate ULID spaces; a single shared
+    cursor would let newer log ids skip older undelivered config events
+    (and vice versa) whenever the batch limit truncates."""
     peer = await _authorized_peer(request, authorization)
+    log_cursor, cfg_cursor = parse_cursor(cursor)
     async with request.app.state.session_factory() as session:
         logs = (
             (
                 await session.execute(
                     select(RequestLog)
-                    .where(RequestLog.id > cursor)
+                    .where(RequestLog.id > log_cursor)
                     .order_by(RequestLog.id)
                     .limit(limit)
                 )
@@ -72,7 +90,7 @@ async def events(
                 (
                     await session.execute(
                         select(ConfigEvent)
-                        .where(ConfigEvent.id > cursor)
+                        .where(ConfigEvent.id > cfg_cursor)
                         .order_by(ConfigEvent.id)
                         .limit(remaining)
                     )
@@ -80,10 +98,11 @@ async def events(
                 .scalars()
                 .all()
             )
-        next_cursor = cursor
-        for row in (*logs, *cfg):
-            if row.id > next_cursor:
-                next_cursor = row.id
+        if logs:
+            log_cursor = max(log_cursor, logs[-1].id)
+        if cfg:
+            cfg_cursor = max(cfg_cursor, cfg[-1].id)
+        next_cursor = format_cursor(log_cursor, cfg_cursor)
         if peer is not None:
             from .merge import get_or_create_sync_state
 
