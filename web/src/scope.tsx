@@ -75,6 +75,10 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     load();
+    // Dropdowns must see newly created/synced keys, providers, aliases and
+    // machines without an app restart.
+    const timer = setInterval(load, 15_000);
+    return () => clearInterval(timer);
   }, []);
 
   const set = (patch: Partial<ScopeState>) =>

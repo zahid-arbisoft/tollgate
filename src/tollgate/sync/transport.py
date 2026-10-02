@@ -16,6 +16,7 @@ import httpx
 from sqlalchemy import select
 
 from ..store.models import ConfigEvent, Peer, RequestLog
+from .api import format_cursor, parse_cursor
 from .merge import apply_config, apply_usage, get_or_create_sync_state
 from .serialize import event_payload, log_payload
 
@@ -33,13 +34,15 @@ async def sync_peer(app, peer: Peer, http: httpx.AsyncClient | None = None) -> d
     try:
         async with app.state.session_factory() as session:
             state = await get_or_create_sync_state(session, peer.id)
+            sent_log_cursor, sent_cfg_cursor = parse_cursor(state.last_sent_cursor)
 
-            # ---- push our newest events
+            # ---- push our newest events (per-stream cursors: one ULID space
+            # must never advance past undelivered events of the other)
             logs = (
                 (
                     await session.execute(
                         select(RequestLog)
-                        .where(RequestLog.id > state.last_sent_cursor)
+                        .where(RequestLog.id > sent_log_cursor)
                         .order_by(RequestLog.id)
                         .limit(BATCH)
                     )
@@ -51,7 +54,7 @@ async def sync_peer(app, peer: Peer, http: httpx.AsyncClient | None = None) -> d
                 (
                     await session.execute(
                         select(ConfigEvent)
-                        .where(ConfigEvent.id > state.last_sent_cursor)
+                        .where(ConfigEvent.id > sent_cfg_cursor)
                         .order_by(ConfigEvent.id)
                         .limit(BATCH)
                     )
@@ -91,9 +94,11 @@ async def sync_peer(app, peer: Peer, http: httpx.AsyncClient | None = None) -> d
             pulled += await apply_config(app, session, data.get("config_events", []))
             result["pulled"] = pulled
 
-            if payload["logs"] or payload["config_events"]:
-                sent_max = max([r.id for r in logs] + [e.id for e in cfg], default="")
-                state.last_sent_cursor = max(state.last_sent_cursor, sent_max)
+            if logs:
+                sent_log_cursor = max(sent_log_cursor, logs[-1].id)
+            if cfg:
+                sent_cfg_cursor = max(sent_cfg_cursor, cfg[-1].id)
+            state.last_sent_cursor = format_cursor(sent_log_cursor, sent_cfg_cursor)
             state.last_received_cursor = data.get("next_cursor") or state.last_received_cursor
             state.last_error = None
             await session.commit()

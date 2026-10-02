@@ -138,7 +138,7 @@ export default function Settings() {
           <Input type="password" value={token} onChange={(e) => setTok(e.target.value)} />
           <Button
             onClick={() => {
-              setToken(token.trim());
+              setToken(token.trim(), 30);
               setSaved("Token updated.");
               setTimeout(() => setSaved(""), 1500);
             }}

@@ -35,6 +35,7 @@ const NAV = [
 
 function TokenGate({ onOk }: { onOk: () => void }) {
   const [token, setTok] = useState(getToken());
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
 
@@ -42,7 +43,7 @@ function TokenGate({ onOk }: { onOk: () => void }) {
     setChecking(true);
     setError("");
     try {
-      setToken(token.trim());
+      setToken(token.trim(), remember ? 30 : 0);
       await api.get("/admin/settings");
       onOk();
     } catch {
@@ -69,6 +70,14 @@ function TokenGate({ onOk }: { onOk: () => void }) {
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
         {error && <div className="mt-2 text-[12px] text-red-400">{error}</div>}
+        <label className="mt-3 flex items-center gap-2 text-[12px] text-[var(--color-muted)]">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          Stay signed in for 30 days on this device
+        </label>
         <Button
           variant="primary"
           className="mt-4 w-full justify-center"

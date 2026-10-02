@@ -26,7 +26,8 @@ Everything below needs **no admin rights** on either OS.
    ```bash
    gh repo create tollgate --private --source . --push
    ```
-2. Bump `version` in `pyproject.toml` (the only place), update CHANGELOG.md.
+2. Bump `version` in `pyproject.toml` **and** `__version__` in
+   `src/tollgate/__init__.py` (kept in lockstep), update CHANGELOG.md.
 3. Tag and push:
    ```bash
    git tag v1.0.0 && git push origin v1.0.0

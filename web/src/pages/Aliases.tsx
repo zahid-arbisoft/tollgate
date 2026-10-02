@@ -143,6 +143,8 @@ export default function Aliases() {
   };
   useEffect(() => {
     load();
+    const timer = setInterval(load, 15_000);
+    return () => clearInterval(timer);
   }, []);
 
   const providerName = (id: number) => providers.find((p) => p.id === id)?.name ?? String(id);

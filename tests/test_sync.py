@@ -11,6 +11,7 @@ from httpx import ASGITransport
 from sqlalchemy import func, select
 
 from tollgate.store.models import ConfigEvent, Peer, RequestLog, VirtualKey
+from tollgate.sync.merge import apply_config, apply_usage
 
 from .proxy_mock import OPENAI_KEY, openai_handler
 
@@ -262,3 +263,41 @@ async def test_file_export_import_roundtrip(pair, tmp_path: Path):
     result2 = await import_sync_file(app_b, path)
     assert result2["logs_applied"] == 0
     assert await _count(app_b, RequestLog) == 1
+
+
+async def test_truncation_never_skips_interleaved_config_events(pair):
+    """Regression: one shared cursor across the log/config ULID spaces loses
+    older config events when a batch limit truncates. Sequence on A: key K1,
+    then 3 usage rows, then key K2 — pulling with limit=2 must still deliver
+    both keys eventually."""
+
+    app_a, app_b = pair
+    k1, _ = await app_a.state.key_service.create(name="interleave-1")
+    for _ in range(3):
+        await _make_usage(app_a)
+    k2, _ = await app_a.state.key_service.create(name="interleave-2")
+
+    # B pulls from A directly with a tiny limit, following next_cursor.
+    # (app_a's own client routes to B by fixture design, so use a dedicated one.)
+    headers = {"authorization": f"Bearer {SHARED_TOKEN}"}
+    puller = httpx.AsyncClient(transport=ASGITransport(app=app_a), base_url="http://peer-a:8787")
+    cursor = ""
+    for _ in range(10):
+        resp = await puller.get(
+            "/sync/events", params={"cursor": cursor, "limit": 2}, headers=headers
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        async with app_b.state.session_factory() as s:
+            await apply_usage(s, data["logs"])
+            await apply_config(app_b, s, data["config_events"])
+        cursor = data["next_cursor"]
+        if not data["logs"] and not data["config_events"]:
+            break
+    await puller.aclose()
+
+    async with app_b.state.session_factory() as s:
+        got1 = await s.get(VirtualKey, k1.id)
+        got2 = await s.get(VirtualKey, k2.id)
+    assert got1 is not None and got1.name == "interleave-1"
+    assert got2 is not None and got2.name == "interleave-2"

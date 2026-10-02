@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.4 (2026-10-02)
+
+- Sync correctness: per-stream cursors for logs vs config events — a shared
+  cursor could permanently skip older config events (keys!) whenever a burst
+  of usage rows hit the 500-row batch limit. Regression-tested.
+- Sync UI: the Add-peer modal no longer closes before showing the generated
+  pairing token (the token was created but thrown away unseen on both
+  platforms); peer entries expose an Active toggle for one-way topologies.
+- Providers: the set/missing key badge and test-connection now reflect the
+  LOCAL secret store (synced rows kept a dangling handle and showed "set").
+- Dashboard: scope dropdowns and the Providers/Aliases/Pricing/Sync/Keys
+  pages live-refresh every 15s — new or peer-synced entries appear without
+  an app restart.
+- Login: optional "Stay signed in for 30 days" (default on); unchecked
+  keeps the token for the current window only.
+- Version reporting: __version__ tracks the release (update check compares
+  honestly now).
+
 ## 0.1.3 (2026-10-02)
 
 - Fix: frozen Windows exe crashed on launch — a log line with a non-ASCII
