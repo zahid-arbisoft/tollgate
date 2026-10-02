@@ -72,7 +72,7 @@ def run_desktop() -> None:
         except OSError:
             time.sleep(0.1)
 
-    log.info("desktop window → http://127.0.0.1:%d", port)
+    log.info("desktop window -> http://127.0.0.1:%d", port)
     webview.create_window(
         "Tollgate", f"http://127.0.0.1:{port}", width=1280, height=860, min_size=(980, 640)
     )
