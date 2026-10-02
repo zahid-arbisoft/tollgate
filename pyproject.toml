@@ -1,6 +1,6 @@
 [project]
 name = "tollgate"
-version = "0.1.0"
+version = "0.1.2"
 description = "Local-first LLM gateway: virtual keys, metering with cache-aware pricing, limits, and a Logfire-style dashboard."
 readme = "README.md"
 requires-python = ">=3.12"

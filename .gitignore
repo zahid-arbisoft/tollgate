@@ -3,11 +3,12 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
-dist/
-build/
+/dist/
+/build/
 
-# Runtime data (never commit DBs or secrets)
-data/
+# Runtime data (never commit DBs or secrets) — root only, NOT the vendored
+# price map under src/tollgate/pricing/data/
+/data/
 *.db
 *.db-wal
 *.db-shm

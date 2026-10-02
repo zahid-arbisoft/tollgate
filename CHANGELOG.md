@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2 (2026-10-02)
+
+- Fix: release workflow's latest.json step crashed on a missing datetime
+  import (builds and the frozen-app smoke were green; only the manifest
+  step failed).
+
+## 0.1.1 (2026-10-02)
+
+- Fix: the vendored LiteLLM price map was never committed (unanchored `data/`
+  gitignore pattern also matched `src/tollgate/pricing/data/`) — CI and the
+  packaged app had no prices. Ignore patterns anchored to the repo root.
+
 ## 0.1.0 (2026-10-02)
 
 Initial implementation of the full plan (M0–M6). Highlights:

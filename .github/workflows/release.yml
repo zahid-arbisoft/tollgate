@@ -65,7 +65,10 @@ jobs:
         env:
           PLATFORM: ${{ matrix.platform }}
         run: |
-          import json, os
+          import datetime
+          import json
+          import os
+
           version = os.environ["VERSION"] or "0.1.0"
           platform = os.environ["PLATFORM"]
           manifest = {
@@ -76,7 +79,7 @@ jobs:
                       "notes": f"Tollgate {version} ({platform})",
                   }
               },
-              "pub_date": __import__("datetime").datetime.now(datetime.UTC).isoformat(),
+              "pub_date": datetime.datetime.now(datetime.UTC).isoformat(),
           }
           with open(f"latest-partial-{platform}.json", "w") as f:
               json.dump(manifest, f)
