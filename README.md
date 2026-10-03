@@ -25,19 +25,59 @@ All paths are **per-user — no administrator rights anywhere**, on either OS.
 
 | How | What |
 |---|---|
-| **Installer** (once Releases exist) | Windows: `tollgate-setup-<ver>.exe` → `%LOCALAPPDATA%\Programs\Tollgate`, no UAC prompt. See [docs/WINDOWS.md](docs/WINDOWS.md). |
+| **Installer** | Windows: `tollgate-setup-<ver>.exe` from [Releases](https://github.com/zahid-arbisoft/tollgate/releases) → `%LOCALAPPDATA%\Programs\Tollgate`, no UAC prompt. See [docs/WINDOWS.md](docs/WINDOWS.md). |
 | **Portable zip** | Unzip anywhere, run `Tollgate`. Same page as above. |
-| **From source** (works today) | Below. |
+| **From code** | Below — always the newest code. |
+
+### From code — macOS
 
 ```bash
-git clone <this-repo> tollgate && cd tollgate
-uv sync                      # or: uv sync --extra desktop  (adds the native window)
-uv run tollgate desktop      # native window (WKWebView / WebView2)
-# …or headless + browser:
-uv run tollgate serve        # gateway + dashboard at http://127.0.0.1:8787
+git clone https://github.com/zahid-arbisoft/tollgate.git && cd tollgate
+# one-time setup (needs uv: brew install uv)
+uv sync --extra desktop                 # venv + all deps incl. native window
+uv run tollgate desktop                 # app window (WKWebView)
+# …or headless in a terminal + your browser:
+uv run tollgate serve                   # http://127.0.0.1:8787
+
+# later, to update and restart:
+git pull && uv sync --extra desktop && uv run tollgate desktop
 ```
 
-Requires Python 3.12+ (the python.org Windows installer has a per-user mode).
+Admin token for the login screen:
+
+```bash
+uv run tollgate key admin-token
+```
+
+### From code — Windows (PowerShell)
+
+```powershell
+git clone https://github.com/zahid-arbisoft/tollgate.git; cd tollgate
+# one-time setup (needs uv: winget install astral-sh.uv, or pipx install uv)
+uv sync --extra desktop                 # venv + all deps incl. native window
+.venv\Scripts\tollgate.exe desktop     # app window (Edge WebView2)
+# …or headless:
+.venv\Scripts\tollgate.exe serve       # http://127.0.0.1:8787
+
+# later, to update and restart:
+git pull; uv sync --extra desktop; .venv\Scripts\tollgate.exe desktop
+```
+
+Admin token for the login screen:
+
+```powershell
+.venv\Scripts\tollgate.exe key admin-token
+```
+
+Notes for both OSes:
+- Requires Python 3.12+ (uv fetches it automatically if missing).
+- `uv run` on the Mac / `.venv\Scripts\tollgate.exe` on Windows are the same
+  CLI; one instance per machine owns port 8787 (running `serve` *and* the
+  desktop window together makes one of them fall back to a random port).
+- The dashboard UI is pre-built into the repo (`src/tollgate/static/`), so
+  **Node is not required**. Rebuild it only when changing `web/`:
+  `cd web && npm install && npm run build`.
+
 Data lives in `~/Library/Application Support/Tollgate` (mac) / `%LOCALAPPDATA%\Tollgate`
 (win): one SQLite file plus encrypted secrets (OS keychain when available,
 Fernet-encrypted-file fallback).
