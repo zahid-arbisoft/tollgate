@@ -72,8 +72,8 @@ Admin token for the login screen:
 Notes for both OSes:
 - Requires Python 3.12+ (uv fetches it automatically if missing).
 - `uv run` on the Mac / `.venv\Scripts\tollgate.exe` on Windows are the same
-  CLI; one instance per machine owns port 8787 (running `serve` *and* the
-  desktop window together makes one of them fall back to a random port).
+  CLI. The desktop window reuses an existing Tollgate gateway on the configured
+  port; closing that window leaves the background service running.
 - The dashboard UI is pre-built into the repo (`src/tollgate/static/`), so
   **Node is not required**. Rebuild it only when changing `web/`:
   `cd web && npm install && npm run build`.
@@ -81,6 +81,33 @@ Notes for both OSes:
 Data lives in `~/Library/Application Support/Tollgate` (mac) / `%LOCALAPPDATA%\Tollgate`
 (win): one SQLite file plus encrypted secrets (OS keychain when available,
 Fernet-encrypted-file fallback).
+
+### Start automatically at sign-in
+
+Install the per-user background service once, from a permanent checkout or
+installation directory. Stop any foreground `serve` or desktop-hosted gateway first.
+
+```bash
+uv run tollgate service install        # start now and at future sign-ins
+uv run tollgate service status         # OS process state + log location
+uv run tollgate desktop                # optional window; reuses the service
+```
+
+On Windows, the equivalent is `.venv\Scripts\tollgate.exe service install`
+(or `Tollgate.exe service install` for the packaged app). Linux is supported
+with systemd. No administrator rights or saved login password are needed.
+
+```bash
+tollgate service stop                  # stop until next start/sign-in
+tollgate service start
+tollgate service restart               # after updating code or .env
+tollgate service uninstall             # remove startup; preserve data
+```
+
+This starts **when you sign in**, rather than before login, so the gateway runs
+under your account with access to your keychain. See
+[background service setup](docs/background-service.md) for platform details,
+configuration, logs, and troubleshooting.
 
 ## First five minutes
 
@@ -168,14 +195,17 @@ no-admin Mac tunnel workaround, and benchmarking rules of thumb) see
 
 ```
 tollgate serve [--host H] [--port P]   # gateway + dashboard (foreground)
+tollgate service install|uninstall    # automatic background startup at sign-in
+tollgate service start|stop|restart|status
 tollgate desktop                       # native window app
 tollgate key create|list|admin-token   # virtual-key management
 tollgate db upgrade                    # apply migrations
 tollgate version
 ```
 
-Everything the CLI does is also in the dashboard (`/admin/*` REST API, bearer
-admin token — see the OpenAPI docs at `/docs` when the server runs).
+Gateway administration is also in the dashboard (`/admin/*` REST API, bearer
+admin token — see the OpenAPI docs at `/docs` when the server runs). Service
+installation and process management are local CLI commands.
 
 ## Configuration
 

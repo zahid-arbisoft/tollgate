@@ -94,6 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def healthz() -> dict:
         return {
             "status": "ok",
+            "service": "tollgate",
             "version": __version__,
             "instance_id": getattr(app.state, "instance_id", None),
         }

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.6 (2026-10-19)
+
+- Run Tollgate automatically at sign-in using a per-user macOS LaunchAgent,
+  Windows scheduled task, or Linux systemd user service. No administrator rights
+  or saved login password are required.
+- Manage background startup with `tollgate service install`, `start`, `stop`,
+  `restart`, `status`, and `uninstall`. Removing the service preserves user data.
+- Desktop windows reuse an existing gateway and leave it running when closed.
+  Occupied ports are reported instead of silently starting a second instance.
+- Background processes write rotating file logs, including startup errors, and
+  support explicit bind-address, port, data-directory, and working-directory
+  overrides.
+- Windows installer offers sign-in startup, stops the service before upgrades,
+  and removes its registration on uninstall.
+- Overview gains a manual Refresh button and a last-refresh indicator.
+- Overview and Logs show billed cost, estimated cost without caching, and cache
+  savings; the database, pricing calculations, and sync preserve both costs.
+- Document installation, updates, and login-token commands separately for macOS
+  and Windows.
+- Add Linux to the CI test matrix and deterministic service lifecycle tests.
+
 ## 0.1.5 (2026-10-02)
 
 - Keys wizard: allowed providers are now checkboxes (no more typo-prone
