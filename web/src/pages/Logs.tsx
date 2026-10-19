@@ -55,7 +55,15 @@ function LogDetail({ row, onClose }: { row: LogRow; onClose: () => void }) {
           <div>cache_read:   {fmtNum(row.cache_read)}  (billed at cache-read rate)</div>
           <div>cache_write:  {fmtNum(row.cache_write)} (billed at cache-write rate)</div>
           <div className="pt-1 text-emerald-400">
-            cost_usd: {row.cost_usd.toFixed(8)} (frozen at log time, band #{row.price_band_id ?? "n/a"})
+            cost_usd (billed): {row.cost_usd.toFixed(8)} — frozen at log time, band #
+            {row.price_band_id ?? "n/a"}
+          </div>
+          <div>
+            cost_usd (zero-cache): {row.cost_uncached_usd.toFixed(8)} — every token at the
+            input rate
+          </div>
+          <div className="pt-1 text-amber-400">
+            cache savings: {(row.cost_uncached_usd - row.cost_usd).toFixed(8)}
           </div>
         </div>
       </div>

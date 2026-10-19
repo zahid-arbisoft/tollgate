@@ -89,15 +89,17 @@ async def test_cost_math_with_cache_split(session):
     await session.commit()
 
     usage = UsageReport(tokens_in=1000, tokens_out=500, cache_read=2000, cache_write=1000)
-    cost, band_id = await compute_cost(session, "claude-sonnet-4-5", usage)
+    cost, uncached, band_id = await compute_cost(session, "claude-sonnet-4-5", usage)
     expected = 1000 * 3e-6 + 500 * 1.5e-5 + 2000 * 3e-7 + 1000 * 3.75e-6
     assert cost == pytest.approx(expected)
+    expected_uncached = (1000 + 2000 + 1000) * 3e-6 + 500 * 1.5e-5
+    assert uncached == pytest.approx(expected_uncached)
     assert band_id is not None
 
 
 async def test_unknown_model_costs_zero(session):
-    cost, band_id = await compute_cost(session, "llama3-local", UsageReport(10, 10))
-    assert cost == 0.0 and band_id is None
+    cost, uncached, band_id = await compute_cost(session, "llama3-local", UsageReport(10, 10))
+    assert cost == 0.0 and uncached == 0.0 and band_id is None
 
 
 # ---------------------------------------------------------------- THE M2 exit
@@ -135,7 +137,7 @@ async def test_price_change_never_rewrites_history(session):
     assert band1_refreshed.effective_until is not None  # band closed, not mutated
 
     # new usage prices at the NEW band
-    cost2, band2_id = await compute_cost(session, "gpt-x", UsageReport(1000, 1000))
+    cost2, uncached2, band2_id = await compute_cost(session, "gpt-x", UsageReport(1000, 1000))
     assert cost2 == pytest.approx(6e-3)
     assert band2_id != band1.id
 
@@ -225,5 +227,34 @@ async def test_manual_entry_for_local_model(session):
     )
     band = await current_band(session, "llama3:8b")
     assert band.source == "manual"
-    cost, _ = await compute_cost(session, "llama3:8b", UsageReport(100, 100))
+    cost, uncached, _ = await compute_cost(session, "llama3:8b", UsageReport(100, 100))
     assert cost == 0.0
+
+
+async def test_uncached_cost_and_savings_stored_on_log(app, client, session):
+    """50 uncached + 30 cache-read on gpt-4o: savings = 30 x (in - cache_read)."""
+    await ensure_seeded(session)
+    from tollgate.store.models import Provider
+
+    async with app.state.session_factory() as s:
+        p = Provider(type="openai", name="openai", base_url="https://api.openai.test/v1")
+        s.add(p)
+        await s.flush()
+        p.secret_handle = f"provider:{p.id}"
+        app.state.secrets.set(p.secret_handle, OPENAI_KEY)
+        await s.commit()
+    old = app.state.http
+    app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(openai_handler))
+    await old.aclose()
+    _, vk = await app.state.key_service.create()
+
+    resp = await client.post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4o", "messages": []},
+        headers={"Authorization": f"Bearer {vk}"},
+    )
+    assert resp.status_code == 200
+    async with app.state.session_factory() as s:
+        log = (await s.execute(select(RequestLog))).scalars().first()
+    assert log.cost_uncached_usd == pytest.approx(80 * 2.5e-6 + 12 * 1e-5)
+    assert log.cost_uncached_usd - log.cost_usd == pytest.approx(30 * (2.5e-6 - 1.25e-6))

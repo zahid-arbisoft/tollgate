@@ -1,16 +1,20 @@
-"""Tollgate CLI (typer): serve, db, key, version."""
+"""Tollgate CLI: foreground server, login service, desktop, and utilities."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import typer
 
 from . import __version__
+from .service_cli import app as service_app
 
 app = typer.Typer(help="Tollgate - local-first LLM gateway.", no_args_is_help=True)
 key_app = typer.Typer(help="Manage virtual keys.", no_args_is_help=True)
 db_app = typer.Typer(help="Database utilities.", no_args_is_help=True)
 app.add_typer(key_app, name="key")
 app.add_typer(db_app, name="db")
+app.add_typer(service_app, name="service")
 
 
 @app.command()
@@ -22,33 +26,55 @@ def version() -> None:
 @app.command()
 def serve(
     host: str = typer.Option(None, help="Bind host (default: settings)."),
-    port: int = typer.Option(None, help="Bind port (default: settings)."),
+    port: int = typer.Option(None, min=1, max=65535, help="Bind port (default: settings)."),
+    data_dir: Path = typer.Option(None, help="Override the data directory."),
+    log_file: Path = typer.Option(None, help="Write rotating logs to this file."),
 ) -> None:
     """Run the gateway + dashboard."""
     import uvicorn
 
-    from .config import get_settings
+    from .config import Settings, get_settings
     from .main import create_app
 
-    settings = get_settings()
-    bind_host = host or settings.host
+    if log_file is not None:
+        from .service import configure_file_logging
 
-    if bind_host not in ("127.0.0.1", "localhost", "::1"):
-        typer.echo("WARNING: LAN binding - the dashboard and admin API are now reachable from")
-        typer.echo("   your network. Anyone with the admin token can manage Tollgate, so")
-        typer.echo("   only do this on networks you trust (or use Tailscale). Proxy")
-        typer.echo("   endpoints still require a valid tg-... virtual key.")
-        the_port = port if port is not None else settings.port
-        typer.echo(f"   Reachable at: http://{_lan_ip()}:{the_port}")
-        typer.echo()
+        configure_file_logging(log_file, "INFO")
 
-    the_app = create_app(settings)
-    uvicorn.run(
-        the_app,
-        host=bind_host,
-        port=port if port is not None else settings.port,
-        log_level=settings.log_level.lower(),
-    )
+    try:
+        settings = (
+            Settings(data_dir=data_dir.expanduser().resolve()) if data_dir else get_settings()
+        )
+        settings.data_dir.mkdir(parents=True, exist_ok=True)
+        bind_host = host or settings.host
+        bind_port = port if port is not None else settings.port
+        settings = settings.model_copy(update={"host": bind_host, "port": bind_port})
+        if log_file is not None:
+            configure_file_logging(log_file, settings.log_level)
+
+        if bind_host not in ("127.0.0.1", "localhost", "::1"):
+            typer.echo("WARNING: LAN binding - the dashboard and admin API are now reachable from")
+            typer.echo("   your network. Anyone with the admin token can manage Tollgate, so")
+            typer.echo("   only do this on networks you trust (or use Tailscale). Proxy")
+            typer.echo("   endpoints still require a valid tg-... virtual key.")
+            typer.echo(f"   Reachable at: http://{_lan_ip()}:{bind_port}")
+            typer.echo()
+
+        the_app = create_app(settings)
+        kwargs = {"log_config": None} if log_file is not None else {}
+        uvicorn.run(
+            the_app,
+            host=bind_host,
+            port=bind_port,
+            log_level=settings.log_level.lower(),
+            **kwargs,
+        )
+    except Exception:
+        if log_file is not None:
+            import logging
+
+            logging.getLogger("tollgate").exception("Gateway startup failed")
+        raise
 
 
 def _lan_ip() -> str:
@@ -76,7 +102,11 @@ def desktop() -> None:
             "(or: pip install 'tollgate[desktop]')"
         )
         raise typer.Exit(1) from None
-    run_desktop()
+    try:
+        run_desktop()
+    except RuntimeError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from None
 
 
 @db_app.command("upgrade")
@@ -166,10 +196,6 @@ def key_admin_token() -> None:
         typer.echo(f"Dashboard:   http://{settings.host}:{settings.port}")
     else:
         typer.echo("Could not determine the admin token.")
-
-
-if __name__ == "__main__":
-    app()
 
 
 if __name__ == "__main__":

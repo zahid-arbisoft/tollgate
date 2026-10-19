@@ -16,16 +16,25 @@ from .bands import current_band
 
 async def compute_cost(
     session: AsyncSession, model: str | None, usage: UsageReport
-) -> tuple[float, int | None]:
+) -> tuple[float, float, int | None]:
+    """Returns (billed_cost, uncached_cost, band_id).
+
+    billed_cost charges cached tokens at their cache rates (the estimated
+    bill); uncached_cost is the counterfactual — every token at the input
+    rate, i.e. what zero caching would have cost. Difference = savings.
+    """
     if not model:
-        return 0.0, None
+        return 0.0, 0.0, None
     band = await current_band(session, model)
     if band is None:
-        return 0.0, None  # unknown/local models: metered but unpriced
+        return 0.0, 0.0, None  # unknown/local models: metered but unpriced
     cost = (
         usage.tokens_in * band.price_in
         + usage.tokens_out * band.price_out
         + usage.cache_read * band.price_cache_read
         + usage.cache_write * band.price_cache_write
     )
-    return cost, band.id
+    uncached = (
+        usage.tokens_in + usage.cache_read + usage.cache_write
+    ) * band.price_in + usage.tokens_out * band.price_out
+    return cost, uncached, band.id

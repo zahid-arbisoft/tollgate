@@ -27,6 +27,7 @@ interface ScopeState {
   models: string[];
   set: (patch: Partial<ScopeState>) => void;
   scopeQuery: () => string;
+  reload: () => void;
 }
 
 const Ctx = createContext<ScopeState>(null as unknown as ScopeState);
@@ -99,7 +100,9 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ ...state, set, scopeQuery }}>{children}</Ctx.Provider>
+    <Ctx.Provider value={{ ...state, set, scopeQuery, reload: load }}>
+      {children}
+    </Ctx.Provider>
   );
 }
 

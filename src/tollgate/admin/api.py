@@ -207,6 +207,8 @@ def log_out(row: RequestLog, keys_by_id: dict[str, VirtualKey] | None = None) ->
         "cache_read": row.cache_read,
         "cache_write": row.cache_write,
         "cost_usd": row.cost_usd,
+        "cost_uncached_usd": row.cost_uncached_usd,
+        "cache_savings_usd": round(max(0.0, row.cost_uncached_usd - row.cost_usd), 8),
         "price_band_id": row.price_band_id,
         "is_stream": row.is_stream,
         "estimated": row.estimated,

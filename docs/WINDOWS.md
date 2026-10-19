@@ -10,13 +10,15 @@ Once a release is published (GitHub Actions builds them from tags):
    [Releases](../../releases) page.
 2. Run it. It installs into `%LOCALAPPDATA%\Programs\Tollgate` with **no UAC
    prompt** (Inno Setup with `PrivilegesRequired=lowest`), adds a Start-menu
-   entry and an optional desktop shortcut.
+   entry and an optional desktop shortcut. Leave **Run Tollgate in the background
+   when I sign in** checked to install the background service.
 3. Launch **Tollgate** — a native window opens (Edge WebView2, preinstalled on
    current Windows 10/11; if missing, install the
    [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
    per-user).
 
-Uninstall from *Settings → Apps*, per-user like any other app.
+Uninstall from *Settings → Apps*, per-user like any other app. The installer
+stops the service before upgrades and removes it during uninstall.
 
 ## Option 2 — Portable zip
 
@@ -44,6 +46,30 @@ tollgate desktop
 
 Headless variant: `tollgate serve` then browse to `http://127.0.0.1:8787`
 (admin token: `tollgate key admin-token`).
+
+## Run in the background at sign-in
+
+Close any foreground gateway, then run from PowerShell:
+
+```powershell
+# Source installation:
+.venv\Scripts\tollgate.exe service install
+.venv\Scripts\tollgate.exe service status
+# Packaged installation (run from its installation directory):
+.\Tollgate.exe service install
+```
+
+This registers a Task Scheduler task for your account and starts it immediately.
+It uses your signed-in session and requires neither administrator rights nor a
+stored Windows password. Source installs use `pythonw.exe`, so no terminal window
+appears. The native desktop window connects to the running gateway, and closing
+the window leaves it running.
+
+Use `service restart` after updating, or `service uninstall` to remove automatic
+startup before deleting/uninstalling the application. Packaged Windows builds
+have no console output; inspect Task Scheduler's `Tollgate-<your SID>` task and
+`%LOCALAPPDATA%\Tollgate\Logs\service.log` for status/errors.
+See [background service setup](background-service.md) for configuration details.
 
 ## Where your data lives
 

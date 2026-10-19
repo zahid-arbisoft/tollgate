@@ -6,6 +6,7 @@ async def test_healthz(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
+    assert body["service"] == "tollgate"
     assert body["instance_id"]
     assert body["version"]
 

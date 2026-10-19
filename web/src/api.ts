@@ -202,6 +202,8 @@ export interface LogRow {
   cache_read: number;
   cache_write: number;
   cost_usd: number;
+  cost_uncached_usd: number;
+  cache_savings_usd: number;
   price_band_id: number | null;
   is_stream: boolean;
   estimated: boolean;
@@ -222,6 +224,8 @@ export interface Stats {
     tokens_out: number;
     tokens_cached: number;
     cost_usd: number;
+    cost_uncached_usd: number;
+    cache_savings_usd: number;
     error_rate: number;
     overhead_p50_ms: number | null;
     overhead_p95_ms: number | null;

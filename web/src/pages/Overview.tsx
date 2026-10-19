@@ -12,23 +12,45 @@ import {
 } from "recharts";
 import { api, fmtMs, fmtNum, fmtTime, fmtUsd, Stats } from "../api";
 import { ScopeBar, useScope } from "../scope";
-import { Card, Stat, Table, Empty } from "../ui";
+import { Card, Stat, Table, Empty, Button } from "../ui";
+import { RefreshCw } from "lucide-react";
 import LiveTail from "../LiveTail";
 
 export default function Overview() {
   const scope = useScope();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
+  const [lastRefresh, setLastRefresh] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  // Ticker so the "last refreshed" label stays honest between polls.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const load = () =>
+    api
+      .get<Stats>(`/admin/stats?${scope.scopeQuery()}`)
+      .then((s) => {
+        setStats(s);
+        setLastRefresh(Date.now());
+      })
+      .catch((e) => setError(String(e.message)));
+
+  const refreshNow = async () => {
+    setRefreshing(true);
+    scope.reload();
+    await load();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const load = () =>
-      api
-        .get<Stats>(`/admin/stats?${scope.scopeQuery()}`)
-        .then(setStats)
-        .catch((e) => setError(String(e.message)));
     load();
     const timer = setInterval(load, 10_000);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope.keyId, scope.provider, scope.model, scope.instanceId, scope.range, scope.granularity]);
 
   if (error) return <Empty>{error}</Empty>;
@@ -38,19 +60,31 @@ export default function Overview() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Overview</h1>
-        <ScopeBar />
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] tabular-nums text-[var(--color-muted)]">
+            {lastRefresh
+              ? `Last refresh ${Math.max(0, Math.round((now - lastRefresh) / 1000))}s ago`
+              : "Refreshing…"}
+          </span>
+          <Button size="xs" disabled={refreshing} onClick={refreshNow}>
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            Refresh
+          </Button>
+          <ScopeBar />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         <Stat label="Requests" value={fmtNum(s.requests)} />
         <Stat label="Tokens in" value={fmtNum(s.tokens_in)} />
         <Stat label="Tokens out" value={fmtNum(s.tokens_out)} />
+        <Stat label="Est. cost" value={fmtUsd(s.cost_usd)} sub="billed incl. cache rates" />
         <Stat
-          label="Est. cost"
-          value={fmtUsd(s.cost_usd)}
-          sub={`${fmtNum(s.tokens_cached)} cached`}
+          label="Without cache"
+          value={fmtUsd(s.cost_uncached_usd)}
+          sub="same usage, zero cache hits"
         />
         <Stat label="Error rate" value={(s.error_rate * 100).toFixed(1) + "%"} />
         <Stat
